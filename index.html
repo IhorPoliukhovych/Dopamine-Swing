@@ -1,0 +1,626 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Interactive model of the dopamine reward system: how pleasures, losses and habits swing mood and shift the norm.">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Dopamine Swing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Golos+Text:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a clinical monitor — one wide trace whose comfort bands ride on a moving "norm" line, readouts strip, then a stimulus console */
+:root{
+  --bg:#eceff3; --panel:#ffffff; --ink:#15202b; --muted:#5d6b79; --rule:#d5dbe2;
+  --trace:#0f7c8c; --norm:#15202b; --euph:#e39a2d; --high:#f1c98a; --calm:#9fd3c7; --low:#a9b3e0; --dep:#5161b8; --crisis:#8a2950;
+  --c-joy:#2f9a5b; --c-fan:#7a5cc8; --c-win:#c98612; --c-sub:#b0337f; --c-loss:#4a5868; --c-care:#2a6fd1;
+  --tip-bg:#15202b; --tip-fg:#f2f5f8;
+  --zone-a:.17;
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0c1117; --panel:#131a22; --ink:#e3e9ef; --muted:#8d9aa7; --rule:#26313c;
+  --trace:#4fd1d9; --norm:#e3e9ef; --euph:#f0b04a; --high:#a97a33; --calm:#2f6f66; --low:#3b4880; --dep:#5a6ad0; --crisis:#c2457a;
+  --c-joy:#4cc47f; --c-fan:#a68cf0; --c-win:#e9ac3c; --c-sub:#e05aac; --c-loss:#9aa8b6; --c-care:#5d9bf0;
+  --tip-bg:#e9eef3; --tip-fg:#111a22; --zone-a:.24; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0c1117; --panel:#131a22; --ink:#e3e9ef; --muted:#8d9aa7; --rule:#26313c;
+  --trace:#4fd1d9; --norm:#e3e9ef; --euph:#f0b04a; --high:#a97a33; --calm:#2f6f66; --low:#3b4880; --dep:#5a6ad0; --crisis:#c2457a;
+  --c-joy:#4cc47f; --c-fan:#a68cf0; --c-win:#e9ac3c; --c-sub:#e05aac; --c-loss:#9aa8b6; --c-care:#5d9bf0;
+  --tip-bg:#e9eef3; --tip-fg:#111a22; --zone-a:.24; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 40px}
+.wrap{max-width:1200px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+h1{font-family:var(--f-display);font-weight:700;font-size:clamp(22px,3.4vw,34px);margin:0;letter-spacing:-.01em;text-wrap:balance}
+.sub{color:var(--muted);margin:4px 0 0;max-width:70ch}
+.lang{display:flex;border:1px solid var(--rule);border-radius:999px;padding:3px;background:var(--panel);flex-shrink:0}
+.lang button{font:600 12px var(--f-mono);border:0;background:transparent;color:var(--muted);padding:6px 12px;border-radius:999px;cursor:pointer;letter-spacing:.06em}
+.lang button[aria-pressed="true"]{background:var(--ink);color:var(--bg)}
+.presets{display:flex;flex-wrap:wrap;gap:8px}
+.presets button{font:500 14px var(--f-body);padding:9px 14px;border-radius:10px;border:1px solid var(--rule);background:var(--panel);color:var(--ink);cursor:pointer}
+.presets button[aria-pressed="true"]{border-color:var(--trace);box-shadow:inset 0 0 0 1px var(--trace);color:var(--trace)}
+.monitor{background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:12px}
+.mon-head{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;justify-content:space-between}
+.ctrls{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.btn{font:600 13px var(--f-body);padding:8px 14px;border-radius:8px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer}
+.btn.primary{background:var(--trace);border-color:var(--trace);color:var(--panel)}
+.speed{display:flex;align-items:center;gap:8px;font:12px var(--f-mono);color:var(--muted)}
+.speed input{width:120px;accent-color:var(--trace)}
+.seg{display:flex;border:1px solid var(--rule);border-radius:9px;padding:2px;background:var(--bg)}
+.seg button{font:600 12.5px var(--f-body);border:0;background:transparent;color:var(--muted);padding:6px 11px;border-radius:7px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--panel);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.daynum.busy{color:var(--trace)}
+.intro{position:fixed;inset:0;z-index:50;background:color-mix(in srgb,var(--ink) 55%,transparent);display:flex;align-items:center;justify-content:center;padding:max(16px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(16px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.intro-card{background:var(--panel);color:var(--ink);border-radius:16px;max-width:640px;width:100%;max-height:100%;overflow:auto;padding:24px 26px;display:flex;flex-direction:column;gap:12px;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+.intro-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.intro-card h2{font-family:var(--f-display);font-weight:700;font-size:22px;margin:0;text-wrap:balance}
+.intro-card p{margin:0;color:var(--muted);font-size:14.5px}
+.intro-card ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.intro-card ol b{font-weight:600}
+.intro-warn{font-size:13.5px;background:var(--bg);border-left:3px solid var(--euph);border-radius:0 8px 8px 0;padding:10px 12px;color:var(--muted)}
+.intro-warn b{color:var(--ink)}
+.intro-help{font-size:13px!important;border-left:3px solid var(--crisis);padding-left:10px}
+.intro-foot{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-top:4px}
+.intro-foot .btn{padding:11px 22px;font-size:14.5px}
+.tips-sub{font:600 11px var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:6px 0 0}
+.tips-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:8px;font-size:14.5px}
+.tips-list b{font-weight:600}
+header .btn{white-space:nowrap}
+@media (max-width:640px){header{flex-wrap:wrap}}
+.chk{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+.daynum{font:600 13px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums}
+.legend{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:18px;height:0;border-top:2.5px solid var(--trace)}
+.legend i.n{border-top:2px solid var(--norm)}
+.legend i.z{border-top:1.5px dashed var(--muted)}
+.canvas-box{position:relative;width:100%;height:420px}
+canvas{display:block;width:100%;height:100%;touch-action:pan-y}
+.tip{position:absolute;pointer-events:none;background:var(--tip-bg);color:var(--tip-fg);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.4;max-width:260px;box-shadow:0 6px 24px rgba(0,0,0,.18);z-index:2}
+.tip b{display:block;font-size:14px;margin-bottom:2px}
+.tip .m{font:11px var(--f-mono);opacity:.75;margin-bottom:4px;letter-spacing:.03em}
+.tip .d{opacity:.92}
+.readouts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;background:var(--rule);border:1px solid var(--rule);border-radius:10px;overflow:hidden}
+.ro{background:var(--panel);padding:10px 14px;min-width:0;display:flex;flex-direction:column;gap:3px}
+.ro .k{font:600 11px var(--f-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ro .v{font:600 19px var(--f-body);font-variant-numeric:tabular-nums;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.ro .c{font-size:12.5px;color:var(--muted);line-height:1.35}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block;flex-shrink:0}
+.bar{height:5px;background:var(--rule);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--trace);border-radius:3px;transition:width .2s}
+.insight{font-size:14.5px;padding:10px 14px;border-left:3px solid var(--trace);background:var(--bg);border-radius:0 8px 8px 0}
+.insight.warn{border-left-color:var(--crisis)}
+.main{display:grid;grid-template-columns:minmax(0,1fr) 330px;gap:16px;align-items:start}
+.monitor{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);z-index:3}
+.console{position:sticky;top:calc(env(safe-area-inset-top,0px) + 8px);background:var(--panel);border:1px solid var(--rule);border-radius:14px;padding:12px;display:flex;flex-direction:column;gap:10px;max-height:calc(100vh - 16px);overflow:auto;min-width:0}
+.tabs{display:flex;flex-wrap:wrap;gap:6px}
+.tab{display:inline-flex;align-items:center;gap:6px;font:600 12.5px var(--f-body);padding:6px 10px;border-radius:999px;border:1px solid var(--rule);background:var(--bg);color:var(--muted);cursor:pointer}
+.tab i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.tab[aria-selected="true"]{color:var(--ink);border-color:var(--ink)}
+.hint{margin:0;font-size:12px;color:var(--muted)}
+.grp{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px;min-width:0}
+.grp h3{margin:0;font:600 11px var(--f-mono);letter-spacing:.09em;text-transform:uppercase;display:flex;align-items:center;gap:8px}
+.grp h3 i{width:9px;height:9px;border-radius:50%;display:inline-block}
+.keys{display:flex;flex-direction:column;gap:6px}
+.key{border-left:3px solid var(--kc,var(--rule))}
+.key{display:flex;justify-content:space-between;align-items:center;gap:8px;text-align:left;font:500 13.5px var(--f-body);padding:7px 10px;border-radius:8px;border:1px solid var(--rule);background:var(--bg);color:var(--ink);cursor:pointer;transition:transform .08s}
+.key:active{transform:scale(.98)}
+.key span{font:600 11px var(--f-mono);color:var(--muted);font-variant-numeric:tabular-nums;flex-shrink:0}
+button:focus-visible,input:focus-visible{outline:2px solid var(--trace);outline-offset:2px}
+.notes{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:18px}
+.card{background:var(--panel);border:1px solid var(--rule);border-radius:12px;padding:16px 18px;min-width:0}
+.card h2{font-family:var(--f-display);font-weight:500;font-size:16px;margin:0 0 8px}
+.card p,.card li{color:var(--muted);font-size:14px;max-width:70ch}
+.card ul{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.card b{color:var(--ink);font-weight:600}
+.help{border-color:var(--crisis)}
+.help p{margin:0 0 6px}
+.canvas-box{height:min(420px,calc(100vh - 330px));min-height:240px}
+@media (max-width:1000px){
+  .main{grid-template-columns:1fr}
+  .monitor{top:env(safe-area-inset-top,0px);padding:10px;gap:8px;border-radius:0 0 14px 14px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+  .console{position:static;max-height:none;overflow:visible}
+  .keys{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+  .canvas-box{height:36vh;min-height:200px}
+  .ro .c,.legend,.insight{display:none}
+  .ro{padding:6px 10px}
+  .ro .v{font-size:15px}
+  .readouts{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .notes{grid-template-columns:1fr}
+}
+@media (max-width:560px){.readouts{grid-template-columns:repeat(2,minmax(0,1fr))}.ro .bar{display:none}.mon-head .speed input{width:90px}}
+@media (prefers-reduced-motion:reduce){.key,.bar i{transition:none}}
+</style>
+
+<div class="intro" id="intro" role="dialog" aria-modal="true" aria-labelledby="intro-h" hidden>
+  <div class="intro-card">
+    <div class="intro-top"><h2 id="intro-h" data-t="in_h"></h2>
+      <div class="lang" role="group" aria-label="Language"><button id="ilang-en">EN</button><button id="ilang-ua">UA</button></div></div>
+    <p data-t="in_p"></p>
+    <ol id="intro-steps"></ol>
+    <div class="intro-warn"><b data-t="in_wh"></b> <span data-t="in_w"></span></div>
+    <p class="intro-help" data-t="help_1"></p>
+    <div class="intro-foot"><label class="chk"><input type="checkbox" id="intro-skip"><span data-t="in_skip"></span></label><button class="btn primary" id="intro-go" data-t="in_go"></button></div>
+  </div>
+</div>
+</head>
+<body>
+<div class="intro" id="tips" role="dialog" aria-modal="true" aria-labelledby="tips-h" hidden>
+  <div class="intro-card">
+    <div class="intro-top"><h2 id="tips-h" data-t="tips_h"></h2></div>
+    <h3 class="tips-sub" data-t="tips_ph"></h3><ul class="tips-list" id="tips-p"></ul>
+    <h3 class="tips-sub" data-t="tips_hh"></h3><ul class="tips-list" id="tips-h2"></ul>
+    <p class="intro-help" data-t="help_1"></p>
+    <div class="intro-foot"><span></span><button class="btn primary" id="tips-go" data-t="tips_close"></button></div>
+  </div>
+</div>
+<div class="wrap">
+  <header>
+    <div>
+      <h1 data-t="title"></h1>
+      <p class="sub" data-t="subtitle"></p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-shrink:0"><button class="btn" id="tipsbtn" data-t="tips_open"></button><button class="btn" id="howto" data-t="in_open"></button><div class="lang" role="group" aria-label="Language">
+      <button id="lang-en" aria-pressed="true">EN</button>
+      <button id="lang-ua" aria-pressed="false">UA</button>
+    </div></div>
+  </header>
+
+  <nav class="presets" id="presets" aria-label="Scenarios"></nav>
+
+  <div class="main">
+  <section class="monitor" id="monitor">
+    <div class="mon-head">
+      <div class="ctrls">
+        <div class="seg" role="group"><button id="m-auto" aria-pressed="true" data-t="m_auto"></button><button id="m-step" aria-pressed="false" data-t="m_step"></button></div>
+        <button class="btn primary" id="play"></button><button class="btn primary" id="next" data-t="next" hidden></button>
+        <button class="btn" id="reset" data-t="reset"></button>
+        <label class="speed" id="speedbox"><span data-t="speed"></span><input type="range" id="speed" min="1" max="40" value="14"><span id="speedv"></span></label>
+      </div>
+      <div class="daynum" id="daynum"></div>
+    </div>
+    <div class="legend">
+      <span><i></i><em data-t="lg_level" style="font-style:normal"></em></span>
+      <span><i class="n"></i><em data-t="lg_norm" style="font-style:normal"></em></span>
+      <span><i class="z"></i><em data-t="lg_rest" style="font-style:normal"></em></span>
+    </div>
+    <div class="canvas-box" id="cbox"><canvas id="cv" aria-label="Dopamine level and norm over time"></canvas><div class="tip" id="tip" hidden></div></div>
+    <div class="readouts">
+      <div class="ro"><div class="k" data-t="r_feel"></div><div class="v"><span class="dot" id="v-dot"></span><span id="v-feel"></span></div><div class="c" data-t="c_feel"></div></div>
+      <div class="ro"><div class="k" data-t="r_norm"></div><div class="v" id="v-norm"></div><div class="c" data-t="c_norm"></div></div>
+      <div class="ro"><div class="k" data-t="r_sens"></div><div class="v" id="v-sens"></div><div class="bar"><i id="b-sens"></i></div><div class="c" data-t="c_sens"></div></div>
+      <div class="ro"><div class="k" data-t="r_drag"></div><div class="v" id="v-drag"></div><div class="bar"><i id="b-drag" style="background:var(--dep)"></i></div><div class="c" data-t="c_drag"></div></div>
+    </div>
+    <div class="insight" id="insight"></div>
+  </section>
+
+  <aside class="console" aria-label="Life events"><div class="tabs" id="tabs" role="tablist"></div><div class="keys" id="keys"></div><p class="hint" data-t="hint"></p></aside>
+  </div>
+
+  <section class="notes">
+    <div class="card">
+      <h2 data-t="how_h"></h2>
+      <ul id="how"></ul>
+    </div>
+    <div class="card help">
+      <h2 data-t="help_h"></h2>
+      <p data-t="help_1"></p>
+      <p data-t="help_2"></p>
+      <p data-t="disclaimer" style="font-size:12.5px"></p>
+    </div>
+  </section>
+</div>
+
+<script>
+(function(){
+const T={
+ en:{title:"Dopamine Swing",subtitle:"An interactive model of the brain's reward system. Feed a life with pleasures and blows, and watch how high the curve flies, how low it falls, and how the norm itself creeps upward.",
+  reset:"Restart",speed:"Speed",play:"Play",pause:"Pause",day:"Day",
+  lg_level:"Dopamine level",lg_norm:"Norm: what the body needs to feel OK",lg_rest:"Natural rest level",
+  r_feel:"How you feel",r_norm:"Norm has shifted",r_sens:"Joy sensitivity",r_drag:"Pull into depression",
+  c_feel:"Dopamine level compared with the norm.",
+  c_norm:"How much extra stimulation the body now needs just to feel normal. Starts at 0.",
+  c_sens:"How strongly a pleasure is felt compared with a fresh brain.",
+  c_drag:"The longer you stay low, the harder it is to climb out.",
+  above:"above natural",same:"Same as natural",
+  z_euph:"Euphoria",z_high:"Elevated",z_calm:"Balance",z_low:"Low",z_dep:"Depression",z_crisis:"Crisis",
+  g_joy:"Everyday pleasures",g_fan:"Fantasies",g_win:"Big wins",g_sub:"Substances",g_loss:"Losses",g_care:"Recovery",
+  p_calm:"Calm life",p_monk:"Monk in Tibet",p_dream:"Dreamer without action",p_dreamok:"Dreamer who acts",p_biz:"Businessman",p_alco:"Drinks through pain",p_strong:"Strong in spirit",p_addict:"Drug addiction",p_star:"Rock-star fame",p_grief:"Grief & recovery",p_free:"Free mode",
+  d_calm:"A steady life: modest pleasures, a few setbacks, one promotion. The norm barely moves, so the curve stays near balance and recovers on its own.",
+  d_monk:"Restraint and daily meditation. The norm stays at zero, so even a walk or a kind word is clearly felt. Loss still hurts, but the mind returns to calm faster.",
+  d_dream:"Motivational videos, bedtime dreams of greatness, sweet fantasies every day, little real action. Each dream is a small sugar rush with a dip after it, and slowly the norm climbs while real life starts to feel flat.",
+  d_dreamok:"The same dreams at first, but from day 30 they turn into training, craft and sleep. Real progress brings an exam, a good job and a promotion. Dreams cost little because effort keeps the norm low.",
+  d_biz:"Constant achievements: praise, deals, money, a promotion, fame, and drinks at networking dinners. Each win raises the norm, so the next one has to be bigger. When a deal fails and a partner betrays him, the fall from a high norm is very deep.",
+  d_alco:"Life deals five blows: lost job, broken heart, lost money, a death, a betrayal. After each one he drinks for weeks, and drinks a little more each time. The norm climbs, the dips get deeper, and each new blow lands on a lower floor.",
+  d_strong:"Exactly the same five blows. After each one: sport every other day, honest talks, nature, sleep, and therapy after the death. The pain is just as sharp, but the norm stays down and each recovery is faster.",
+  d_addict:"Weed on weekends, then cocaine, then heroin. The first highs hit euphoria; each next one is smaller while the norm shoots up, so sober life sits deep below it. From day 300: no drugs, sport, sleep and weekly therapy. Watch how slowly the norm comes back down.",
+  d_star:"Sudden fame, money and constant celebration, then substances to keep the feeling. The norm rises so high that even new fame barely registers, and a breakup near the bottom lands very hard.",
+  d_grief:"A loved one dies, then a job is lost. Mood falls into depression and gets sticky. Steady support, friends and time pull it back out.",
+  d_free:"Free mode: time runs, and nothing happens unless you press a key below. Try piling on pleasures and watch the norm line climb.",
+  i_crisis:"The curve is in the crisis zone. In real life this is the point where a person needs other people and professional help, not willpower alone.",
+  i_norm:"The norm has risen by {n}. Without a fresh hit, ordinary life now sits below it and feels like a low.",
+  i_drag:"Low mood is getting sticky: the longer the curve stays down, the slower it climbs back.",
+  i_sens:"Tolerance: pleasures are now felt at only {p}% of their original strength.",
+  i_high:"This high is borrowed. The rebound is already building, and the dip will come after it.",
+  how_h:"How the model works",
+  how:["<b>Every pleasure has a rebound.</b> A pleasure lifts dopamine, and the brain answers with a slower opposite push to restore balance. That push is the come-down. Bigger highs bring bigger dips, even for fantasies and scrolling.",
+   "<b>The norm creeps up.</b> Frequent strong stimulation teaches the body to expect it. The norm line rises, and the comfort bands rise with it. Now you need more stimulation just to feel OK.",
+   "<b>Tolerance.</b> The same event gives a smaller high each time. The norm goes up while the highs shrink.",
+   "<b>Big blows cut through any high.</b> Losing a job, a broken heart, betrayal, humiliation, losing money or a loved one wipe out the current high and push you toward depression. Being in love softens the blow only a little, and a broken heart ends the love itself.",
+   "<b>Sticky lows.</b> The longer mood stays in depression, the harder it is to climb out. Sleep, meditation, therapy, honest talks and time lower the norm again, slowly."],
+  help_h:"If this feels close to home",
+  help_1:"If you or someone you know has thoughts of not wanting to live, please reach out. US: call or text 988 (Suicide & Crisis Lifeline). Ukraine: 7333 (Lifeline Ukraine). Elsewhere: your local emergency number.",
+  help_2:"Depression and addiction are treatable. The curve in this model always has a way back up, and so do people.",
+  disclaimer:"A simplified teaching model inspired by opponent-process theory and the idea of a hedonic set point. Numbers are illustrative, not medical data.",
+  in_h:"Before you start",in_p:"This is a game-like model of the brain's reward system. You choose what happens in a life and watch how dopamine and mood respond.",
+  in_steps:["<b>Read the chart.</b> The teal curve is your dopamine level. The dark line is the norm: how much stimulation the body needs to feel OK. The coloured bands (euphoria, balance, depression…) move together with the norm.",
+   "<b>Make a move.</b> The model starts in Day by day mode, paused. Pick a category on the right (pleasures, fantasies, wins, substances, losses, recovery) and press an event. That is today. If it has a rebound or consequences, the next day plays out by itself, then it is your move again.",
+   "<b>Skip a day.</b> Press Next day to live a quiet day with no events.",
+   "<b>Watch the norm.</b> Pile on pleasures and the norm creeps up. Now ordinary life sits below it and feels like a low. Sleep, sport, nature and therapy bring it back down slowly.",
+   "<b>Hover the dots.</b> Point at a dot on the chart (or tap it on a phone) to see what happened that day.",
+   "<b>Try ready-made lives.</b> The buttons above the chart run whole scenarios: a monk, an addict, a businessman, someone who drinks through pain and someone strong in spirit. Switch to Time runs to let time flow on its own."],
+  in_wh:"Disclaimer.",in_w:"This is a simplified teaching model, not a medical or psychological tool. Real brains are far more complex, and the numbers are illustrative. It cannot diagnose anything or replace a doctor or therapist.",
+  in_skip:"Don't show again",in_go:"Start",in_open:"How to use",
+  m_auto:"Time runs",m_step:"Day by day",next:"Next day",yourmove:"your move",conseq:"living the consequences…",d_step:"Day by day: each press is one day. If the event has a rebound or consequences, the next day plays out on its own. Then it is your move again. Press Next day to live a quiet day.",hint:"Tip: hover or tap a dot on the chart to see what happened.",tl_norm:"Norm line",tip_now:"Right now",tl_normd:"How much stimulation the body needs right now just to feel OK. It rises when you chase strong pleasures and slowly falls with rest, sport, sleep and therapy. The coloured zones move with it.",
+  tl_rest:"Natural rest level",tl_restd:"Where dopamine sits with no stimulation at all. When the norm rises above this line, a quiet ordinary day starts to feel like a low.",
+  tips_open:"Tips for a calm life",tips_h:"Tips for a calm, pleasant life",tips_ph:"Patterns the model shows",tips_hh:"What helps",tips_close:"Got it",
+  tips_p:["<b>Every rise is paid for with a fall.</b> The faster and stronger the rise, the deeper the dip after it.",
+   "<b>The less healthy the cause, the sadder the fall.</b> Substances and empty fantasies give a quick high and a long, heavy come-down. Joys you earn with effort (sport, craft, real progress) lift you more gently and leave almost no rebound.",
+   "<b>Chasing highs raises the norm.</b> Then ordinary life feels grey, and you need more and more just to feel OK.",
+   "<b>Being high doesn't protect you from a blow.</b> A big loss cuts through any high, and the higher you were on cheap stimulation, the longer the fall.",
+   "<b>The longer you stay low, the stickier it gets.</b> Act early, while it is still a low and not yet depression."],
+  tips_h2:["<b>Choose slow pleasures.</b> Walks, nature, friends, craft, sport. They lift you without pushing the norm up.",
+   "<b>Earn the reward.</b> Do the thing first, enjoy it after. Effort makes dopamine work for you.",
+   "<b>Keep cheap hits rare.</b> Endless scrolling, motivational videos without action, sugar, alcohol: treat them as occasional treats, not daily fuel.",
+   "<b>Turn a dream into one small step today.</b> A dream with action is fuel. A dream instead of action is a sugar rush.",
+   "<b>Protect your sleep.</b> It quietly resets the system every night.",
+   "<b>Take breaks from stimulation.</b> A day without screens feels boring at first. That boredom is the norm going back down.",
+   "<b>After a blow, don't numb it.</b> Move your body, talk to someone, go outside. If the low lasts for weeks, get professional help.",
+   "<b>Don't stay alone in a low.</b> Reach out to people. Depression lies that nobody cares."],
+  tip_peak:"Strength",tip_need:"Norm at that moment",tip_feel:"Feeling"},
+ ua:{title:"Дофамінові гойдалки",subtitle:"Інтерактивна модель системи винагороди мозку. Наповнюйте життя радощами й ударами і дивіться, як високо злітає крива, як низько падає і як сама норма повзе вгору.",
+  reset:"Спочатку",speed:"Швидкість",play:"Пуск",pause:"Пауза",day:"День",
+  lg_level:"Рівень дофаміну",lg_norm:"Норма: скільки треба тілу, щоб почуватись ок",lg_rest:"Природний рівень спокою",
+  r_feel:"Як ви почуваєтесь",r_norm:"Зсув норми",r_sens:"Чутливість до радості",r_drag:"Затягування в депресію",
+  c_feel:"Рівень дофаміну порівняно з нормою.",
+  c_norm:"Скільки додаткової стимуляції тепер потрібно тілу, щоб просто почуватись нормально. На старті 0.",
+  c_sens:"Наскільки сильно відчувається радість порівняно зі «свіжим» мозком.",
+  c_drag:"Чим довше ви внизу, тим важче вибратись.",
+  above:"понад природний",same:"Як природний",
+  z_euph:"Ейфорія",z_high:"Піднесення",z_calm:"Рівновага",z_low:"Спад",z_dep:"Депресія",z_crisis:"Криза",
+  g_joy:"Звичайні радощі",g_fan:"Фантазії",g_win:"Великі перемоги",g_sub:"Речовини",g_loss:"Втрати",g_care:"Відновлення",
+  p_calm:"Спокійне життя",p_monk:"Монах у Тибеті",p_dream:"Мрійник без дій",p_dreamok:"Мрійник, що діє",p_biz:"Бізнесмен",p_alco:"Заливає біль алкоголем",p_strong:"Сильний духом",p_addict:"Наркозалежність",p_star:"Слава рок-зірки",p_grief:"Горе і відновлення",p_free:"Вільний режим",
+  d_calm:"Рівне життя: помірні радощі, кілька невдач, одне підвищення. Норма майже не рухається, тож крива тримається біля рівноваги і сама відновлюється.",
+  d_monk:"Самообмеження і щоденна медитація. Норма стоїть на нулі, тож навіть прогулянка чи добре слово відчуваються яскраво. Втрата теж болить, але розум швидше повертається до спокою.",
+  d_dream:"Мотиваційні ролики, мрії перед сном про велич, солодкі фантазії щодня і мало реальних дій. Кожна мрія як маленький цукровий сплеск зі спадом після нього, а норма потроху росте, і реальне життя стає пласким.",
+  d_dreamok:"Спочатку ті самі мрії, але з 30-го дня вони перетворюються на тренування, справу і сон. Реальний прогрес приносить іспит, гарну роботу і підвищення. Мрії майже нічого не коштують, бо зусилля тримають норму внизу.",
+  d_biz:"Постійні досягнення: похвала, угоди, гроші, підвищення, слава і алкоголь на ділових вечерях. Кожна перемога піднімає норму, тож наступна має бути більшою. Коли угода провалюється і партнер зраджує, падіння з високої норми дуже глибоке.",
+  d_alco:"Життя завдає п'ять ударів: втрата роботи, розбите серце, втрата грошей, смерть, зрада. Після кожного він п'є тижнями, і щоразу трохи більше. Норма росте, спади глибшають, і кожен новий удар приходить на нижчий рівень.",
+  d_strong:"Рівно ті самі п'ять ударів. Після кожного: спорт через день, чесні розмови, природа, сон, а після смерті терапія. Біль такий самий гострий, але норма лишається внизу, і кожне відновлення швидше.",
+  d_addict:"Травка на вихідних, потім кокаїн, потім героїн. Перші кайфи дають ейфорію, кожен наступний менший, а норма злітає, тож тверезе життя опиняється глибоко під нею. З 300-го дня: без наркотиків, спорт, сон і щотижнева терапія. Подивіться, як повільно норма опускається.",
+  d_star:"Раптова слава, гроші, постійне свято, потім речовини, щоб утримати це відчуття. Норма піднімається так високо, що навіть нова слава майже не відчувається, а розрив на дні б'є дуже сильно.",
+  d_grief:"Помирає близька людина, потім втрата роботи. Настрій падає в депресію і застрягає. Постійна підтримка, друзі й час поступово витягують назад.",
+  d_free:"Вільний режим: час іде, і нічого не стається, поки ви не натиснете кнопку нижче. Спробуйте накидати багато радощів і подивіться, як піднімається лінія норми.",
+  i_crisis:"Крива в зоні кризи. У реальному житті саме тут людині потрібні інші люди і фахова допомога, а не лише сила волі.",
+  i_norm:"Норма піднялась на {n}. Без нового «вкиду» звичайне життя тепер нижче за неї і відчувається як спад.",
+  i_drag:"Поганий настрій затягує: чим довше крива внизу, тим повільніше вона піднімається.",
+  i_sens:"Толерантність: радощі тепер відчуваються лише на {p}% від початкової сили.",
+  i_high:"Цей кайф позичений. Відкат уже наростає, і після нього прийде спад.",
+  how_h:"Як працює модель",
+  how:["<b>У кожної радості є відкат.</b> Радість піднімає дофамін, а мозок відповідає повільнішим зворотним поштовхом, щоб повернути рівновагу. Це і є відхідняк. Що вищий злет, то глибший спад, навіть після фантазій і соцмереж.",
+   "<b>Норма повзе вгору.</b> Часта сильна стимуляція привчає тіло її чекати. Лінія норми піднімається, а разом з нею і всі зони. Тепер потрібно більше стимулів, щоб просто почуватись ок.",
+   "<b>Толерантність.</b> Та сама подія щоразу дає менший злет. Норма росте, а злети меншають.",
+   "<b>Великі удари пробивають будь-який кайф.</b> Втрата роботи, розбите серце, зрада, приниження, втрата грошей чи близької людини обнуляють поточний злет і штовхають до депресії. Закоханість лише трохи пом'якшує удар, а розбите серце саму закоханість і обриває.",
+   "<b>Липка депресія.</b> Чим довше настрій у депресії, тим важче з неї вийти. Сон, медитація, терапія, чесні розмови і час повільно опускають норму назад."],
+  help_h:"Якщо це звучить знайомо",
+  help_1:"Якщо у вас або у когось поруч є думки, що не хочеться жити, будь ласка, зверніться по допомогу. Україна: 7333 (Lifeline Ukraine). США: дзвінок або SMS на 988. В інших країнах: місцевий номер екстреної допомоги.",
+  help_2:"Депресія і залежність лікуються. У цій моделі крива завжди має шлях угору, і в людей теж.",
+  disclaimer:"Спрощена навчальна модель на основі теорії протидіючих процесів і ідеї гедонічного базового рівня. Числа ілюстративні, це не медичні дані.",
+  in_h:"Перед початком",in_p:"Це модель-гра про систему винагороди мозку. Ви вирішуєте, що стається в житті, і дивитесь, як на це реагують дофамін і настрій.",
+  in_steps:["<b>Як читати графік.</b> Бірюзова крива це рівень дофаміну. Темна лінія це норма: скільки стимуляції треба тілу, щоб почуватись ок. Кольорові зони (ейфорія, рівновага, депресія…) рухаються разом з нормою.",
+   "<b>Зробіть хід.</b> Модель стартує в режимі «День за днем» на паузі. Оберіть праворуч категорію (радощі, фантазії, перемоги, речовини, втрати, відновлення) і натисніть подію. Це сьогоднішній день. Якщо в події є відкат чи наслідки, наступний день проживається сам, а потім знову ваш хід.",
+   "<b>Пропустіть день.</b> «Наступний день» означає спокійний день без подій.",
+   "<b>Стежте за нормою.</b> Накидайте багато радощів, і норма поповзе вгору. Тоді звичайне життя опиниться під нею і відчуватиметься як спад. Сон, спорт, природа і терапія повільно повертають її вниз.",
+   "<b>Наводьте на точки.</b> Наведіть мишку на точку на графіку (або тапніть на телефоні), щоб побачити, що сталося того дня.",
+   "<b>Спробуйте готові життя.</b> Кнопки над графіком запускають цілі сценарії: монах, наркозалежний, бізнесмен, людина, що заливає біль алкоголем, і сильний духом. Перемкніть на «Час іде сам», щоб час плив сам."],
+  in_wh:"Дисклеймер.",in_w:"Це спрощена навчальна модель, а не медичний чи психологічний інструмент. Справжній мозок набагато складніший, а числа ілюстративні. Модель нічого не діагностує і не замінює лікаря чи психотерапевта.",
+  in_skip:"Більше не показувати",in_go:"Почати",in_open:"Як користуватись",
+  m_auto:"Час іде сам",m_step:"День за днем",next:"Наступний день",yourmove:"ваш хід",conseq:"проживаємо наслідки…",d_step:"День за днем: кожне натискання це один день. Якщо в події є відкат чи наслідки, наступний день проживається автоматично. Потім знову ваш хід. «Наступний день» означає спокійний день без подій.",hint:"Порада: наведіть або тапніть на точку на графіку, щоб побачити, що сталося.",tl_norm:"Лінія норми",tip_now:"Зараз",tl_normd:"Скільки стимуляції тілу треба саме зараз, щоб просто почуватись ок. Вона росте, коли гонишся за сильними радощами, і повільно опускається від відпочинку, спорту, сну і терапії. Кольорові зони рухаються разом з нею.",
+  tl_rest:"Природний рівень спокою",tl_restd:"Де знаходиться дофамін без жодної стимуляції. Коли норма піднімається вище цієї лінії, спокійний звичайний день починає відчуватись як спад.",
+  tips_open:"Поради для спокійного життя",tips_h:"Поради для спокійного і приємного життя",tips_ph:"Закономірності, які показує модель",tips_hh:"Що допомагає",tips_close:"Зрозуміло",
+  tips_p:["<b>За кожен злет платиш падінням.</b> Що швидший і сильніший підйом, то глибший спад після нього.",
+   "<b>Що менш здорова причина підйому, то печальніший спад.</b> Речовини і пусті фантазії дають швидкий кайф і довгий важкий відхідняк. Радощі, зароблені зусиллям (спорт, справа, реальний прогрес), піднімають м'якше і майже не дають відкату.",
+   "<b>Погоня за кайфом піднімає норму.</b> Потім звичайне життя здається сірим, і треба все більше, щоб просто почуватись ок.",
+   "<b>Кайф не захищає від удару.</b> Велика втрата пробиває будь-який злет, і що вище ти був на дешевій стимуляції, то довше падіння.",
+   "<b>Чим довше внизу, тим сильніше затягує.</b> Дійте рано, поки це ще спад, а не депресія."],
+  tips_h2:["<b>Обирайте повільні радощі.</b> Прогулянки, природа, друзі, справа, спорт. Вони піднімають настрій, не штовхаючи норму вгору.",
+   "<b>Заробляйте винагороду.</b> Спочатку зробіть, потім насолоджуйтесь. Зусилля змушує дофамін працювати на вас.",
+   "<b>Дешеві «дози» рідко.</b> Нескінченні стрічки, мотиваційні ролики без дій, цукор, алкоголь: як рідкісні ласощі, а не щоденне паливо.",
+   "<b>Перетворіть мрію на один маленький крок сьогодні.</b> Мрія з дією це паливо. Мрія замість дії це цукровий сплеск.",
+   "<b>Бережіть сон.</b> Він щоночі тихо перезавантажує систему.",
+   "<b>Робіть перерви від стимуляції.</b> День без екранів спочатку нудний. Ця нудьга і є норма, що опускається.",
+   "<b>Після удару не глушіть біль.</b> Рухайтесь, поговоріть з кимось, вийдіть надвір. Якщо спад тримається тижнями, зверніться до фахівця.",
+   "<b>Не лишайтесь на самоті в спаді.</b> Тягніться до людей. Депресія бреше, що всім на вас байдуже."],
+  tip_peak:"Сила",tip_need:"Норма в цей момент",tip_feel:"Самопочуття"}
+};
+
+// amp: strength; tau: days the effect lasts; opp: rebound strength; add: how much it raises the norm; heal: multipliers on drag (g) and tolerance (tol)
+const EV={
+ meal:{g:"joy",amp:12,tau:1,opp:.35,add:.04,en:["Tasty meal","Good food lifts you for a few hours, then a small dip."],ua:["Смачна їжа","Смачне піднімає на кілька годин, потім маленький спад."]},
+ walk:{g:"joy",amp:10,tau:1.2,opp:.3,add:0,en:["Walk in the sun","Gentle and clean. Almost no effect on the norm."],ua:["Прогулянка на сонці","М'яко і чисто. Майже не впливає на норму."]},
+ friends:{g:"joy",amp:18,tau:1.5,opp:.3,add:.02,en:["Evening with friends","Real connection. A warm lift with a soft landing."],ua:["Вечір з друзями","Справжній контакт. Тепле піднесення з м'яким приземленням."]},
+ workout:{g:"joy",amp:15,tau:1.2,opp:.3,add:0,heal:{g:.9,tol:.97},en:["Workout","Effort first, reward after. Slightly lowers the norm."],ua:["Тренування","Спочатку зусилля, потім винагорода. Трохи знижує норму."]},
+ shopping:{g:"joy",amp:22,tau:1,opp:.7,add:.12,en:["Shopping spree","The thrill of a new thing fades fast."],ua:["Шопінг","Захват від нової речі швидко минає."]},
+ gaming:{g:"joy",amp:24,tau:1,opp:.8,add:.15,en:["Gaming all night","Constant small rewards. A noticeable dip the next day."],ua:["Ігри всю ніч","Постійні маленькі нагороди. Помітний спад наступного дня."]},
+ scroll:{g:"joy",amp:18,tau:1,opp:.9,add:.18,en:["Social media binge","Endless quick hits. High rebound, raises the norm."],ua:["Залипання в соцмережах","Нескінченні швидкі «дози». Сильний відкат, піднімає норму."]},
+ intimacy:{g:"joy",amp:32,tau:1.5,opp:.5,add:.06,en:["Intimacy","A strong natural high followed by a calm dip."],ua:["Близькість","Сильний природний злет, потім спокійний спад."]},
+
+ dream:{g:"fan",amp:18,tau:1,opp:1,add:.12,en:["Daydream of success","Feels like progress, but nothing changed. Then a dip."],ua:["Мрії про успіх","Відчувається як прогрес, але нічого не змінилось. Потім спад."]},
+ bedtime:{g:"fan",amp:22,tau:1,opp:1,add:.14,en:["Bedtime dreams of greatness","Imagining becoming great before sleep. Sweet, then empty."],ua:["Мрії перед сном про велич","Уявляєш, як станеш великим. Солодко, потім порожньо."]},
+ motiv:{g:"fan",amp:26,tau:1,opp:1.1,add:.16,en:["Motivational videos","A rush of 'I can do anything' without the action."],ua:["Мотиваційні ролики","Приплив «я все зможу» без жодної дії."]},
+ sweet:{g:"fan",amp:20,tau:1,opp:1,add:.12,en:["Sweet fantasies","Imagining something pleasant in detail. A free hit with a rebound."],ua:["Солодкі фантазії","Детально уявляєш щось приємне. Безкоштовна «доза» з відкатом."]},
+ lotto:{g:"fan",amp:24,tau:1,opp:1.1,add:.14,en:["Imagining a lottery win","Spending money you don't have, in your head."],ua:["Уявляю виграш у лотерею","Витрачаєш у голові гроші, яких немає."]},
+ romance:{g:"fan",amp:22,tau:1.2,opp:1,add:.12,en:["Romantic fantasies","A perfect partner in your head makes real life look grey."],ua:["Романтичні фантазії","Ідеальний партнер у голові робить реальне життя сірим."]},
+ revenge:{g:"fan",amp:16,tau:1,opp:1.2,add:.1,en:["'I'll show them' fantasies","Imagining being proven right. A bitter sweetness."],ua:["Фантазії «я їм ще покажу»","Уявляєш, як усім доведеш. Гірка солодкість."]},
+ plans:{g:"fan",amp:20,tau:1,opp:1,add:.12,en:["Planning a perfect future","Dream boards and plans that never start."],ua:["Плани ідеального майбутнього","Дошки мрій і плани, які так і не починаються."]},
+
+ praise:{g:"win",amp:28,tau:2,opp:.5,add:.04,en:["Praise at work","Recognition feels good for a day or two."],ua:["Похвала на роботі","Визнання гріє день-два."]},
+ exam:{g:"win",amp:38,tau:3,opp:.5,add:.04,en:["Passed a big exam","Relief and pride after real effort."],ua:["Склав важкий іспит","Полегшення і гордість після справжніх зусиль."]},
+ promo:{g:"win",amp:55,tau:6,opp:.6,add:.08,en:["Promotion","A big lift, and soon the new level feels normal."],ua:["Підвищення по роботі","Сильний злет, і скоро новий рівень стає звичним."]},
+ money:{g:"win",amp:70,tau:5,opp:.7,add:.12,en:["Made big money","Euphoria, then the body expects the next payday."],ua:["Заробив великі гроші","Ейфорія, потім тіло чекає наступної «зарплати»."]},
+ love:{g:"win",amp:80,tau:20,opp:.55,add:.08,en:["Falling in love","Weeks of high, then the brain adapts."],ua:["Закоханість","Тижні на піку, потім мозок звикає."]},
+ viral:{g:"win",amp:65,tau:3,opp:.9,add:.18,en:["Viral post","Thousands of likes. You start wanting the next wave."],ua:["Вірусний пост","Тисячі лайків. Починаєш хотіти наступну хвилю."]},
+ fame:{g:"win",amp:90,tau:6,opp:1,add:.25,en:["Fame & popularity","A huge high that raises the norm sharply."],ua:["Слава і популярність","Величезний злет, що різко піднімає норму."]},
+ goodjob:{g:"win",amp:50,tau:8,opp:.5,add:.05,en:["Found a good job","Work you like, fair pay, a future. A strong, lasting lift."],ua:["Знайшов гарну роботу","Робота до душі, нормальні гроші, перспектива. Сильне і тривале піднесення."]},
+ survjob:{g:"win",amp:16,tau:2,opp:1.4,add:0,en:["Found a job to survive","Relief that bills are covered, then a grey routine you don't love."],ua:["Знайшов роботу для виживання","Полегшення, що є чим платити, а потім сіра рутина без радості."]},
+ baby:{g:"win",amp:75,tau:25,opp:.4,add:.03,en:["Birth of a child","Deep, lasting joy and meaning. Like love, it softens other blows."],ua:["Народження дитини","Глибока тривала радість і сенс. Як і закоханість, пом'якшує інші удари."]},
+ lottery:{g:"win",amp:110,tau:5,opp:1,add:.3,en:["Won the lottery","Sky-high, but studies show the joy fades in months."],ua:["Виграш у лотерею","До небес, але дослідження кажуть, що радість минає за місяці."]},
+
+ sugar:{g:"sub",amp:18,tau:.8,opp:.9,add:.12,en:["Sugar & energy drinks","A quick spike and a crash."],ua:["Цукор і енергетики","Швидкий сплеск і падіння."]},
+ nicotine:{g:"sub",amp:20,tau:.8,opp:1,add:.2,en:["Nicotine","Small relief that mostly removes its own withdrawal."],ua:["Нікотин","Маленьке полегшення, що здебільшого знімає власну ломку."]},
+ alcohol:{g:"sub",amp:50,tau:.8,opp:1.1,add:.25,en:["Alcohol","Loosens up, then a heavy next day."],ua:["Алкоголь","Розслабляє, потім важкий ранок."]},
+ weed:{g:"sub",amp:55,tau:.8,opp:1,add:.28,en:["Weed","Calm high; with frequent use normal life feels dull."],ua:["Травка","Спокійний кайф; при частому вживанні звичайне життя стає нудним."]},
+ mdma:{g:"sub",amp:120,tau:.8,opp:1.5,add:.5,en:["MDMA","Intense euphoria and closeness, then 'blue Tuesday'."],ua:["MDMA","Сильна ейфорія і близькість, потім «сумний вівторок»."]},
+ coke:{g:"sub",amp:130,tau:.8,opp:1.6,add:.6,en:["Cocaine","Short powerful euphoria and a hard crash."],ua:["Кокаїн","Коротка потужна ейфорія і жорстке падіння."]},
+ meth:{g:"sub",amp:160,tau:1,opp:1.8,add:.8,en:["Methamphetamine","Extreme high; the norm jumps after very few uses."],ua:["Метамфетамін","Екстремальний кайф; норма стрибає після кількох разів."]},
+ heroin:{g:"sub",amp:170,tau:.9,opp:1.8,add:.9,en:["Heroin","Euphoria from the first time, and the fastest climb of the norm."],ua:["Героїн","Ейфорія з першого разу і найшвидше зростання норми."]},
+
+ bad:{g:"loss",amp:-15,crush:0.15,tau:1,en:["Bad day","Small troubles pile up."],ua:["Поганий день","Дрібні неприємності накопичились."]},
+ argue:{g:"loss",amp:-22,crush:0.25,tau:2,en:["Big argument","A fight with someone close."],ua:["Сварка","Конфлікт з кимось близьким."]},
+ shame:{g:"loss",amp:-44,crush:0.8,tau:4,en:["Public humiliation","Being laughed at or exposed."],ua:["Публічне приниження","Коли з тебе сміються або тебе осоромили."]},
+ broke:{g:"loss",amp:-49,crush:0.8,tau:10,en:["Lost a lot of money","Savings gone, stress for weeks."],ua:["Втратив багато грошей","Заощадження зникли, стрес на тижні."]},
+ fired:{g:"loss",amp:-55,crush:0.85,tau:12,en:["Lost my job","Loss of income, routine and self-worth. Knocks you off balance from any height."],ua:["Втратив роботу","Втрата доходу, режиму і відчуття цінності. Збиває з рівноваги з будь-якої висоти."]},
+ betray:{g:"loss",amp:-58,crush:0.85,tau:15,en:["Betrayal by a friend","Trust broken by someone you relied on."],ua:["Зрада друга","Довіру зламала людина, на яку ти покладався."]},
+ breakup:{g:"loss",amp:-63,crush:0.8,endsLove:1,tau:18,en:["Broken heart","The person is gone and so is the daily dose of them."],ua:["Розбите серце","Людини немає, і щоденної «дози» її теж."]},
+ death:{g:"loss",amp:-75,crush:0.9,tau:40,en:["Death of a loved one","Grief that lasts for months."],ua:["Смерть близької людини","Горе, що триває місяцями."]},
+
+ sleep:{g:"care",amp:6,tau:1,opp:0,add:0,heal:{g:.9,tol:.96},en:["Good sleep","Resets the system a little. Lowers the norm."],ua:["Добрий сон","Трохи перезавантажує систему. Знижує норму."]},
+ meditate:{g:"care",amp:8,tau:1,opp:.05,add:0,heal:{g:.85,tol:.96},en:["Meditation","Calms the swings and lowers the norm."],ua:["Медитація","Заспокоює коливання і знижує норму."]},
+ detox:{g:"care",amp:-6,tau:1,opp:0,add:0,heal:{g:.95,tol:.9},en:["Day without screens","Boring at first, but the norm drops."],ua:["День без екранів","Спочатку нудно, але норма падає."]},
+ nature:{g:"care",amp:10,tau:2,opp:.05,add:0,heal:{g:.85,tol:.95},en:["Time in nature","Slow, quiet pleasure with no rebound."],ua:["Час на природі","Повільна тиха радість без відкату."]},
+ talk:{g:"care",amp:10,tau:3,opp:.05,add:0,heal:{g:.7,tol:.95},en:["Honest talk with a friend","Sharing the weight makes lows less sticky."],ua:["Чесна розмова з другом","Поділитись тягарем, щоб депресія менше затягувала."]},
+ hobby:{g:"care",amp:12,tau:3,opp:.1,add:0,heal:{g:.85,tol:.95},en:["Meaningful work or craft","Slow reward from real progress."],ua:["Справа чи ремесло","Повільна винагорода від реального прогресу."]},
+ therapy:{g:"care",amp:8,tau:10,opp:0,add:0,heal:{g:.5,tol:.85},en:["Therapy & support","Professional help. The strongest way back up."],ua:["Терапія і підтримка","Фахова допомога. Найсильніший шлях угору."]}
+};
+const GROUPS=["joy","fan","win","sub","loss","care"];
+
+function rngf(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;let t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+function every(a,b,step,id,o){for(let d=a;d<=b;d+=step)o.push([d,id])}
+function sprinkle(r,a,b,gap,ids,o){for(let d=a;d<=b;d+=gap*(.6+r()*.8))o.push([d,ids[Math.floor(r()*ids.length)]])}
+
+const P={
+ calm:{dur:365,sigma:2.5,sched(r){const o=[];sprinkle(r,2,360,3,["meal","walk","friends","workout"],o);o.push([45,"praise"],[80,"argue"],[120,"exam"],[160,"bad"],[200,"promo"],[250,"praise"],[290,"bad"],[330,"intimacy"]);return o}},
+ monk:{dur:365,sigma:1.2,sched(r){const o=[];every(3,362,3,"meditate",o);sprinkle(r,5,360,6,["walk","nature","sleep","hobby"],o);o.push([120,"praise"],[250,"death"]);return o}},
+ dream:{dur:365,sigma:2.5,sched(r){const o=[];sprinkle(r,2,362,2.6,["dream","bedtime","motiv","sweet","lotto","romance","plans","scroll"],o);sprinkle(r,5,360,8,["meal","friends"],o);o.push([90,"bad"],[200,"shame"],[290,"argue"]);return o}},
+ addict:{dur:365,sigma:2.5,sched(r){const o=[];sprinkle(r,2,90,3,["meal","walk","friends"],o);every(20,90,7,"weed",o);every(95,170,4,"coke",o);every(171,210,2,"coke",o);every(215,298,1.5,"heroin",o);o.push([180,"fired"],[235,"breakup"]);every(300,362,7,"therapy",o);every(303,362,4,"workout",o);every(301,362,3,"sleep",o);return o}},
+ star:{dur:365,sigma:2.5,sched(r){const o=[[25,"praise"],[40,"fame"],[55,"money"],[70,"viral"],[85,"fame"],[120,"money"],[150,"fame"],[180,"viral"],[230,"breakup"],[260,"fame"]];every(60,298,3,"alcohol",o);every(110,200,5,"coke",o);every(200,295,3,"heroin",o);every(305,362,7,"therapy",o);every(306,362,4,"talk",o);return o}},
+ grief:{dur:365,sigma:2.5,sched(r){const o=[[60,"death"],[75,"bad"],[100,"fired"],[280,"love"]];sprinkle(r,2,58,3,["meal","walk","friends"],o);every(130,260,7,"therapy",o);every(135,300,5,"friends",o);every(140,300,4,"workout",o);every(132,300,6,"talk",o);return o}},
+ dreamok:{dur:365,sigma:2.5,sched(r){const o=[];sprinkle(r,2,60,1.8,["dream","bedtime","motiv","plans"],o);sprinkle(r,30,362,2.5,["workout","hobby","sleep"],o);sprinkle(r,60,362,6,["dream","plans"],o);sprinkle(r,5,360,7,["meal","friends"],o);o.push([90,"bad"],[110,"exam"],[160,"goodjob"],[200,"argue"],[240,"praise"],[280,"promo"],[330,"praise"]);return o}},
+ biz:{dur:365,sigma:2.5,sched(r){const o=[];every(10,350,10,"praise",o);every(25,250,25,"money",o);every(14,250,7,"alcohol",o);sprinkle(r,3,360,9,["meal","friends","workout"],o);o.push([60,"promo"],[120,"viral"],[180,"fame"],[200,"argue"],[262,"broke"],[275,"betray"]);every(280,362,3,"workout",o);every(285,362,7,"talk",o);o.push([300,"baby"]);return o}},
+ alco:{dur:365,sigma:2.5,sched(r){const o=[];sprinkle(r,2,360,4,["meal","friends","walk"],o);LIFEHITS.forEach(([d,id],i)=>{o.push([d,id]);every(d+1,d+12+i*3,Math.max(1.5,3-i*.35),"alcohol",o)});every(20,360,7,"alcohol",o);return o}},
+ strong:{dur:365,sigma:2.5,sched(r){const o=[];sprinkle(r,2,360,4,["meal","friends","walk"],o);LIFEHITS.forEach(([d,id])=>{o.push([d,id]);every(d+5,d+30,2.5,"workout",o);o.push([d+4,"talk"],[d+12,"nature"],[d+20,"talk"]);every(d+5,d+30,4,"sleep",o)});every(225,300,7,"therapy",o);every(30,360,6,"workout",o);return o}},
+ free:{dur:0,sigma:2,sched(){return []}}
+};
+const LIFEHITS=[[40,"fired"],[100,"breakup"],[160,"broke"],[220,"death"],[300,"betray"]];
+const PRESET_ORDER=["free","calm","monk","dreamok","dream","biz","alco","strong","addict","star","grief"];
+
+// zones relative to the norm (felt = level - norm)
+const ZONES=[[45,1e9,"euph","--euph"],[15,45,"high","--high"],[-15,15,"calm","--calm"],[-35,-15,"low","--low"],[-60,-35,"dep","--dep"],[-1e9,-60,"crisis","--crisis"]];
+const BOUNDS=[45,15,-15,-35,-60];
+function zoneOf(v){for(const z of ZONES)if(v>=z[0])return z;return ZONES[5]}
+
+let lang="en";try{const s=localStorage.getItem("dopa-lang");if(s==="ua"||s==="en")lang=s}catch(e){}
+let pid="calm",S,playing=true,speed=14,hover=null,mode="auto",stepTarget=null;
+
+function newState(id){const p=P[id],rng=rngf(11+id.length*17);return{t:0,imps:[],tol:0,g:0,n:0,nr:0,hist:[],marks:[],sched:p.sched(rng).sort((a,b)=>a[0]-b[0]),sp:0,p,rng,lastRec:-1,lvl:0,norm:0,ymax:120}}
+const GAIN=1.8,LGAIN=1.3,OPPF={joy:1.5,fan:1.5,win:1,sub:.55,care:1};
+function fire(id){const e=EV[id];let a,k;
+ if(e.amp>0){a=e.amp*GAIN/(1+.25*S.tol);k=(e.opp||0)*OPPF[e.g]*(1+.3*S.tol);S.tol=Math.min(6,S.tol+(e.add||0)*e.amp/50*.5)}
+ else{a=e.amp*LGAIN*(1+.2*S.tol+S.g/40);k=.25;
+  const c=e.crush||0;if(c)for(const m of S.imps){if(m.a+m.r>0){const f=m.tA>=15?(e.endsLove?0:1-c*.95):(c>=.5?(1-c)*(1-c):1-c);m.a*=f;m.r*=f}}}
+ const tA=Math.max(e.tau,.8);
+ S.imps.push({r:a,a:0,b:0,tR:Math.max(.35,tA*.3),tA,tB:tA*(e.amp>0?3:2),k});
+ if(e.heal){S.g*=e.heal.g;S.tol*=e.heal.tol}
+ S.marks.push({t:S.t,id,peak:e.amp,need:S.norm})}
+function gauss(r){return Math.sqrt(-2*Math.log(r()+1e-9))*Math.cos(2*Math.PI*r())}
+function step(dt){const p=S.p;
+ while(S.sp<S.sched.length&&S.sched[S.sp][0]<=S.t){fire(S.sched[S.sp][1]);S.sp++}
+ let sa=0,sb=0;for(const m of S.imps){const f=m.r/m.tR*dt;m.r-=f;m.a+=f-m.a/m.tA*dt;m.b+=((-m.k*m.a)-m.b)/m.tB*dt;sa+=m.a;sb+=m.b}
+ const sum=230*Math.tanh(sa/230)+90*Math.tanh(sb/90);
+ S.imps=S.imps.filter(m=>Math.abs(m.r)>.03||Math.abs(m.a)>.03||Math.abs(m.b)>.03);
+ S.tol-=S.tol/70*dt;
+ S.nr+=-S.nr/2*dt+p.sigma*Math.sqrt(dt)*gauss(S.rng);S.n+=(S.nr-S.n)*dt/3;
+ const target=sum-S.g+S.n;
+ S.lvl+=(target-S.lvl)*Math.min(1,dt/.6);
+ S.norm+=(Math.min(90,15*S.tol)-S.norm)*Math.min(1,dt/2);
+ const felt=S.lvl-S.norm;
+ if(felt<-35)S.g=Math.min(22,S.g+.35*dt);else S.g-=S.g/15*dt;
+ S.t+=dt;
+ if(S.t-S.lastRec>=.25){S.hist.push([S.t,S.lvl,S.norm]);S.lastRec=S.t;if(!p.dur&&S.hist.length>8000)S.hist.splice(0,1500)}}
+function advance(days){const n=Math.ceil(days/.02),dt=days/n;for(let i=0;i<n;i++){step(dt);if(S.p.dur&&S.t>=S.p.dur){playing=false;break}}}
+
+const cv=document.getElementById("cv"),ctx=cv.getContext("2d"),tip=document.getElementById("tip");
+function css(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
+let geo=null;
+function draw(){const box=cv.parentElement,W=box.clientWidth,H=box.clientHeight,dpr=window.devicePixelRatio||1;
+ if(cv.width!==Math.round(W*dpr)||cv.height!==Math.round(H*dpr)){cv.width=Math.round(W*dpr);cv.height=Math.round(H*dpr)}
+ ctx.setTransform(dpr,0,0,dpr,0,0);ctx.clearRect(0,0,W,H);
+ const L=8,R=W-8,top=34,bot=H-22,ch=bot-top;
+ const span=S.p.dur||(mode==="step"?45:180),x0=S.p.dur?0:Math.max(0,S.t-span*.85),x1=x0+span;
+ const h=S.hist.filter(p=>p[0]>=x0-1);
+ let mx=110;for(const p of h){mx=Math.max(mx,p[1]+20,p[2]+75)}
+ S.ymax+=(Math.min(320,mx)-S.ymax)*.15;
+ const ymin=-110,ymax=S.ymax;
+ const X=t=>L+(t-x0)/(x1-x0)*(R-L),Y=v=>top+(ymax-Math.max(ymin,Math.min(ymax,v)))/(ymax-ymin)*ch;
+ geo={X,Y,x0,x1,L,R,top,bot};
+ const za=parseFloat(css("--zone-a"))||.17,mono=css("--f-mono"),muted=css("--muted"),ink=css("--ink");
+ // norm path points (history + flat extension)
+ const np=h.map(p=>[X(p[0]),p[2]]);
+ if(!np.length)np.push([L,S.norm]);else np.unshift([L,np[0][1]]);
+ np.push([R,S.norm]);
+ const edges=[ymax+999,...BOUNDS,ymin-999];
+ for(let i=0;i<ZONES.length;i++){const up=edges[i],dn=edges[i+1];
+  ctx.beginPath();np.forEach((q,j)=>{const y=up>500?top:Y(q[1]+up);j?ctx.lineTo(q[0],y):ctx.moveTo(q[0],y)});
+  for(let j=np.length-1;j>=0;j--){const y=dn<-500?bot:Y(np[j][1]+dn);ctx.lineTo(np[j][0],y)}
+  ctx.closePath();ctx.globalAlpha=ZONES[i][2]==="calm"?za*.8:za;ctx.fillStyle=css(ZONES[i][3]);ctx.fill()}
+ ctx.globalAlpha=1;
+ // zone labels at the right, following current norm
+ ctx.font="600 10px "+mono;ctx.textAlign="right";ctx.textBaseline="middle";ctx.fillStyle=muted;
+ const mids=[[60,"euph"],[30,"high"],[0,"calm"],[-25,"low"],[-47,"dep"],[-80,"crisis"]];
+ for(const m of mids){const y=Y(S.norm+m[0]);if(y>top+6&&y<bot-6)ctx.fillText(T[lang]["z_"+m[1]].toUpperCase(),R-6,y)}
+ // natural rest level
+ ctx.strokeStyle=muted;ctx.lineWidth=1.2;ctx.setLineDash([4,5]);ctx.beginPath();ctx.moveTo(L,Y(0));ctx.lineTo(R,Y(0));ctx.stroke();ctx.setLineDash([]);
+ // day grid
+ const gstep=span>200?60:30;ctx.textAlign="center";ctx.textBaseline="alphabetic";ctx.strokeStyle=css("--rule");ctx.lineWidth=1;
+ for(let d=Math.ceil(x0/gstep)*gstep;d<=x1;d+=gstep){const x=X(d);ctx.globalAlpha=.6;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bot);ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle=muted;ctx.fillText((d===0?T[lang].day+" ":"")+d,Math.min(Math.max(x,22),R-18),H-6)}
+ if(h.length>1){
+  // norm line
+  ctx.strokeStyle=css("--norm");ctx.globalAlpha=.75;ctx.lineWidth=1.8;ctx.beginPath();h.forEach((p,i)=>{const x=X(p[0]),y=Y(p[2]);i?ctx.lineTo(x,y):ctx.moveTo(x,y)});ctx.stroke();ctx.globalAlpha=1;
+  // level trace
+  ctx.strokeStyle=css("--trace");ctx.lineWidth=2.8;ctx.lineJoin="round";ctx.lineCap="round";ctx.beginPath();ctx.moveTo(X(h[0][0]),Y(h[0][1]));
+  for(let i=1;i<h.length-1;i++){const xc=(X(h[i][0])+X(h[i+1][0]))/2,yc=(Y(h[i][1])+Y(h[i+1][1]))/2;ctx.quadraticCurveTo(X(h[i][0]),Y(h[i][1]),xc,yc)}
+  const hl=h[h.length-1];ctx.lineTo(X(hl[0]),Y(hl[1]));ctx.stroke();
+  ctx.fillStyle=ink;ctx.beginPath();ctx.arc(X(hl[0]),Y(hl[1]),4.5,0,7);ctx.fill()}
+ // event marks
+ const vis=S.marks.filter(m=>m.t>=x0&&m.t<=x1);
+ const showLabels=vis.length<=14;
+ ctx.font="500 10.5px "+css("--f-body");ctx.textAlign="left";const lastX=[-1e9,-1e9];
+ for(const m of vis){const e=EV[m.id],x=X(m.t),col=css("--c-"+e.g);
+  const hp=nearestHist(m.t+.6*Math.max(e.tau,.8));
+  const isH=hover&&hover.mark===m;
+  ctx.strokeStyle=col;ctx.globalAlpha=isH?.8:.22;ctx.lineWidth=isH?1.5:1;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bot);ctx.stroke();ctx.globalAlpha=1;
+  ctx.fillStyle=col;ctx.beginPath();ctx.arc(x,top,isH?5:3.5,0,7);ctx.fill();
+  if(hp){ctx.beginPath();ctx.arc(X(hp[0]),Y(hp[1]),isH?5:3,0,7);ctx.fill()}
+  if(showLabels){const label=e[lang][0],w=ctx.measureText(label).width;
+   for(let r=0;r<2;r++){if(x>lastX[r]+6){ctx.fillText(label,Math.min(x+5,R-w),r?25:13);lastX[r]=x+w+5;break}}}}
+ // crosshair
+ if(hover&&!hover.mark&&hover.hp&&!hover.line){const x=X(hover.hp[0]);ctx.strokeStyle=ink;ctx.globalAlpha=.35;ctx.beginPath();ctx.moveTo(x,top);ctx.lineTo(x,bot);ctx.stroke();ctx.globalAlpha=1;ctx.fillStyle=ink;ctx.beginPath();ctx.arc(x,Y(hover.hp[1]),4,0,7);ctx.fill()}
+}
+function nearestHist(t){const h=S.hist;if(!h.length)return null;let lo=0,hi=h.length-1;if(t>h[hi][0])return null;while(hi-lo>1){const m=(lo+hi)>>1;if(h[m][0]<t)lo=m;else hi=m}return h[hi]}
+
+function fmtS(v){v=Math.round(v);return (v>0?"+":"")+v}
+function showTip(px,py){if(!geo){tip.hidden=true;return}
+ const {X,Y,top}=geo,t=T[lang];let best=null,bd=10;
+ for(const m of S.marks){const d=Math.abs(X(m.t)-px);if(d>=bd)continue;const hp=nearestHist(m.t+.6*Math.max(EV[m.id].tau,.8));const nearDot=hp&&Math.hypot(X(hp[0])-px,Y(hp[1])-py)<14;if(py<top+30||nearDot){bd=d;best=m}}
+ let html;
+ const tt=geo.x0+(px-geo.L)/(geo.R-geo.L)*(geo.x1-geo.x0);let hp=nearestHist(tt);
+ const pastEnd=!hp&&px>=geo.L&&px<=geo.R;const nNow=hp?hp[2]:S.norm;
+ if(best){const e=EV[best.id];hover={mark:best};
+  html=`<b>${e[lang][0]}</b><div class="m">${t.day} ${Math.floor(best.t)} · ${t["g_"+e.g]} · ${t.tip_peak} ${e.amp>0?"+":""}${e.amp}</div><div class="d">${e[lang][1]}</div><div class="m" style="margin-top:6px;margin-bottom:0">${t.tip_need}: ${fmtS(best.need)}</div>`}
+ else if((hp||pastEnd)&&Math.abs(Y(nNow)-py)<9){hover=hp?{hp,line:1}:null;
+  html=`<b>${t.tl_norm}</b><div class="m">${t.tip_now}: ${fmtS(nNow)}</div><div class="d">${t.tl_normd}</div>`}
+ else if((hp||pastEnd)&&Math.abs(Y(0)-py)<7){hover=null;
+  html=`<b>${t.tl_rest}</b><div class="d">${t.tl_restd}</div>`}
+ else{
+  if(!hp||px<geo.L||px>geo.R){hover=null;tip.hidden=true;draw();return}
+  hover={hp};const z=zoneOf(hp[1]-hp[2]);
+  html=`<div class="m" style="margin-bottom:2px">${t.day} ${Math.floor(hp[0])} · ${t.lg_level}</div><b>${t["z_"+z[2]]}</b><div class="m" style="margin:0">${t.tip_need}: ${fmtS(hp[2])}</div>`}
+ tip.innerHTML=html;tip.hidden=false;
+ const bw=cv.parentElement.clientWidth,tw=tip.offsetWidth,th=tip.offsetHeight;
+ let lx=px+14;if(lx+tw>bw-4)lx=px-tw-14;if(lx<4)lx=4;
+ let ly=py-th-12;if(ly<4)ly=py+16;
+ tip.style.left=lx+"px";tip.style.top=ly+"px";draw()}
+cv.addEventListener("pointermove",e=>{const r=cv.getBoundingClientRect();showTip(e.clientX-r.left,e.clientY-r.top)});
+cv.addEventListener("pointerdown",e=>{const r=cv.getBoundingClientRect();showTip(e.clientX-r.left,e.clientY-r.top)});
+cv.addEventListener("pointerleave",()=>{hover=null;tip.hidden=true;draw()});
+
+const $=id=>document.getElementById(id);
+function ui(){const t=T[lang];
+ const dn=$("daynum");if(mode==="step"){const busy=stepTarget!==null;dn.textContent=t.day+" "+(Math.round(S.t)+1)+" · "+(busy?t.conseq:t.yourmove);dn.classList.toggle("busy",busy)}else{dn.textContent=t.day+" "+Math.floor(S.t)+(S.p.dur?" / "+S.p.dur:"");dn.classList.remove("busy")}
+ const felt=S.lvl-S.norm,z=zoneOf(felt),sens=Math.round(100/(1+.25*S.tol));
+ $("v-feel").textContent=t["z_"+z[2]];$("v-dot").style.background="var("+z[3]+")";
+ const nr=Math.round(S.norm);$("v-norm").textContent=nr<=0?t.same:"+"+nr+" "+t.above;
+ $("v-sens").textContent=sens+"%";$("b-sens").style.width=sens+"%";
+ const dg=Math.round(S.g/22*100);$("v-drag").textContent=dg+"%";$("b-drag").style.width=dg+"%";
+ let msg=mode==="step"?t.d_step:t["d_"+pid],warn=false;const lm=S.marks[S.marks.length-1];
+ if(felt<-60){msg=t.i_crisis;warn=true}
+ else if(felt>45&&lm&&(EV[lm.id].g==="sub"||EV[lm.id].g==="fan")&&S.t-lm.t<4){msg=t.i_high}
+ else if(S.norm>20&&felt<-15){msg=t.i_norm.replace("{n}",nr)}
+ else if(S.g>8){msg=t.i_drag}
+ else if(sens<60){msg=t.i_sens.replace("{p}",sens)}
+ const ins=$("insight");if(ins.textContent!==msg)ins.textContent=msg;ins.classList.toggle("warn",warn);
+ $("play").textContent=playing?t.pause:t.play;$("play").hidden=mode==="step";$("speedbox").hidden=mode==="step";$("next").hidden=mode!=="step";$("next").disabled=stepTarget!==null;$("m-auto").setAttribute("aria-pressed",mode==="auto");$("m-step").setAttribute("aria-pressed",mode==="step")}
+
+function renderStatic(){const t=T[lang];document.documentElement.lang=lang==="ua"?"uk":"en";
+ document.querySelectorAll("[data-t]").forEach(el=>{el.textContent=t[el.dataset.t]});
+ $("how").innerHTML=t.how.map(s=>"<li>"+s+"</li>").join("");
+ $("tips-p").innerHTML=t.tips_p.map(s=>"<li>"+s+"</li>").join("");$("tips-h2").innerHTML=t.tips_h2.map(s=>"<li>"+s+"</li>").join("");
+ $("intro-steps").innerHTML=t.in_steps.map(s=>"<li>"+s+"</li>").join("");
+ $("ilang-en").setAttribute("aria-pressed",lang==="en");$("ilang-ua").setAttribute("aria-pressed",lang==="ua");
+ $("lang-en").setAttribute("aria-pressed",lang==="en");$("lang-ua").setAttribute("aria-pressed",lang==="ua");
+ $("presets").innerHTML=PRESET_ORDER.map(id=>`<button data-p="${id}" aria-pressed="${id===pid}">${t["p_"+id]}</button>`).join("");
+ renderKeys();
+ $("speedv").textContent=speed+(lang==="ua"?" дн/с":" d/s");
+ ui();draw()}
+
+let tab="joy";try{const s=localStorage.getItem("dopa-tab");if(GROUPS.includes(s))tab=s}catch(e){}
+function renderKeys(){const t=T[lang];
+ $("tabs").innerHTML=GROUPS.map(g=>`<button class="tab" role="tab" data-g="${g}" aria-selected="${g===tab}"><i style="background:var(--c-${g})"></i>${t["g_"+g]}</button>`).join("");
+ $("keys").innerHTML=Object.keys(EV).filter(k=>EV[k].g===tab).map(k=>`<button class="key" style="--kc:var(--c-${tab})" data-e="${k}" title="${EV[k][lang][1].replace(/"/g,"&quot;")}">${EV[k][lang][0]}<span>${EV[k].amp>0?"+":""}${EV[k].amp}</span></button>`).join("")}
+function load(id,pre){pid=id;S=newState(id);if(pre)advance(pre);playing=true;hover=null;tip.hidden=true;renderStatic()}
+function toFree(){pid="free";S.p=P.free;S.sched=[];S.sp=0;renderStatic()}
+
+$("presets").addEventListener("click",e=>{const b=e.target.closest("[data-p]");if(b){mode="auto";stepTarget=null;load(b.dataset.p,0)}});
+$("tabs").addEventListener("click",e=>{const b=e.target.closest("[data-g]");if(!b)return;tab=b.dataset.g;try{localStorage.setItem("dopa-tab",tab)}catch(_){}renderKeys()});
+$("keys").addEventListener("click",e=>{const b=e.target.closest("[data-e]");if(!b)return;
+ if(S.p.dur&&S.t>=S.p.dur)toFree();
+ if(mode==="step"){finishStep();const e=EV[b.dataset.e];fire(b.dataset.e);const needs=e.amp<0||(e.opp||0)*OPPF[e.g]>.2;stepTarget=Math.round(S.t)+(needs?2:1);ui();return}
+ fire(b.dataset.e);playing=true;ui();draw()});
+function finishStep(){if(stepTarget!==null){advance(Math.max(0,stepTarget-S.t));stepTarget=null}}
+function setMode(m){mode=m;finishStep();if(m==="step"){if(pid!=="free"||S.p.dur)toFree();playing=false;S.t=Math.round(S.t)}else{playing=true}ui();draw()}
+$("m-auto").onclick=()=>setMode("auto");$("m-step").onclick=()=>setMode("step");
+$("next").onclick=()=>{if(stepTarget!==null)return;stepTarget=Math.round(S.t)+1;ui()};
+$("play").onclick=()=>{if(S.p.dur&&S.t>=S.p.dur)load(pid,0);else playing=!playing;ui()};
+$("reset").onclick=()=>{stepTarget=null;load(pid,0);if(mode==="step"){playing=false;ui()}};
+$("speed").oninput=e=>{speed=+e.target.value;$("speedv").textContent=speed+(lang==="ua"?" дн/с":" d/s")};
+function setLang(l){lang=l;try{localStorage.setItem("dopa-lang",l)}catch(e){}renderStatic()}
+$("lang-en").onclick=()=>setLang("en");$("lang-ua").onclick=()=>setLang("ua");
+$("ilang-en").onclick=()=>setLang("en");$("ilang-ua").onclick=()=>setLang("ua");
+function closeIntro(){$("intro").hidden=true;try{if($("intro-skip").checked)localStorage.setItem("dopa-intro","off");else localStorage.removeItem("dopa-intro")}catch(e){}}
+$("intro-go").onclick=closeIntro;
+$("intro").addEventListener("click",e=>{if(e.target.id==="intro")closeIntro()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&!$("intro").hidden)closeIntro()});
+$("tipsbtn").onclick=()=>{$("tips").hidden=false;$("tips-go").focus()};
+$("tips-go").onclick=()=>{$("tips").hidden=true};
+$("tips").addEventListener("click",e=>{if(e.target.id==="tips")$("tips").hidden=true});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("tips").hidden=true});
+$("howto").onclick=()=>{$("intro").hidden=false;$("intro-go").focus()};
+(function(){let off=false;try{off=localStorage.getItem("dopa-intro")==="off"}catch(e){}if(!off){$("intro").hidden=false;setTimeout(()=>$("intro-go").focus(),50)}else $("intro-skip").checked=true})();
+window.addEventListener("resize",draw);
+try{matchMedia("(prefers-color-scheme: dark)").addEventListener("change",draw)}catch(e){}
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:["data-theme"]});
+
+let last=performance.now();
+function loop(now){const dts=Math.min(.1,(now-last)/1000);last=now;
+ if(mode==="step"){if(stepTarget!==null){const rem=stepTarget-S.t;if(rem<=1e-6){S.t=stepTarget;stepTarget=null}else advance(Math.min(rem,3*dts));ui();draw()}}
+ else if(playing){advance(speed*dts);ui();draw()}
+ requestAnimationFrame(loop)}
+load("free",0);setMode("step");requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
